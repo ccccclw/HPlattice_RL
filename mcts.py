@@ -6,11 +6,10 @@ import random
 
 class MCTS:
 
-    def __init__(self, chain : str, roll_out : int, exploration_weight: float):
+    def __init__(self, chain : str, exploration_weight: float):
         self.tree = init_tree(chain)
         self.chain = chain
         self.all_pos = [node.pos for node in self.tree]
-        self.roll_out = roll_out
         self.path = [self.tree[0]]
         self.exploration_weight = exploration_weight
 
@@ -31,7 +30,7 @@ class MCTS:
         # path = []
         while True:
             self.path.append(node)
-            print("node_pos: ", node.pos,"chilren: ",[node_i.pos for node_i in node.children])
+            # print("node_pos: ", node.pos,"chilren: ",[node_i.pos for node_i in node.children])
             if len(node.children) == 0:
                 break
             elif len(node.children) <= 3:
@@ -48,54 +47,63 @@ class MCTS:
         parent_pos = node.pos
         parent_action = node.action
         new_nodes = []
-        # if parent_action == 'L':
-        #     new_pos = [[parent_pos[0],parent_pos[1]-1],
-        #                [parent_pos[0]-1,parent_pos[1]],
-        #                [parent_pos[0],parent_pos[1]+1]]
-        # elif parent_action == 'F':
-        #     new_pos = [[parent_pos[0]-1,parent_pos[1]],
-        #                [parent_pos[0],parent_pos[1]+1],
-        #                [parent_pos[0]+1,parent_pos[1]]]
-        # elif parent_action == 'R':
-        #     new_pos = [[parent_pos[0],parent_pos[1]+1],
-        #                [parent_pos[0]+1,parent_pos[1]],
-        #                [parent_pos[0],parent_pos[1]-1]]
-        # else:
-        #     raise RuntimeError("Invalid action.")
         new_pos = [[parent_pos[0],parent_pos[1]+1],
                    [parent_pos[0]+1,parent_pos[1]],
                    [parent_pos[0],parent_pos[1]-1],
                    [parent_pos[0]-1,parent_pos[1]]]
-        print(f"parent_pos {node.pos}, {new_pos}, current path: {[node_i.pos for node_i in self.path]}")
+        # print(f"parent_pos {node.pos}, {new_pos}, current path: {[node_i.pos for node_i in self.path]}")
 
         new_pos.remove(self.path[-2].pos)
         # print(f"parent_pos {node.pos}, {new_pos}, current path: {[node_i.pos for node_i in self.path]}")
         tmp_rewards = [self.reward(new_pos[i], node) for i in range(3)]
         tmp_pure_rewards = [self.reward(new_pos[i], node, added_reward=False) for i in range(3)]
+        tmp_path_pos = [node_i.pos for node_i in self.path]
 
-        for action_index, action in enumerate(['L','F','R']):
-            if new_pos[action_index] not in [node_i.pos for node_i in self.path]:
-                new_node = Node(new_pos[action_index],node.row_num,action,node.level+1,1,tmp_rewards[action_index],tmp_pure_rewards[action_index],self.chain[node.level+1])
+        for action_index in range(3):
+            if new_pos[action_index] not in tmp_path_pos:
+                parent_pos_diff = np.array(new_pos[action_index]) - np.array(node.parent_pos)
+                pos_diff = np.array(new_pos[action_index]) - np.array(node.pos)
+                #Determine the direction of move
+                if 0 in parent_pos_diff:
+                    action = 'F'
+                else:
+                    if parent_pos_diff[0] == 1 and parent_pos_diff[1] == 1:
+                        if pos_diff[0] == 1 and pos_diff[1] == 0:
+                            action = 'R'
+                        elif pos_diff[0] == 0 and pos_diff[1] == 1:
+                            action = 'L'
+                    if parent_pos_diff[0] == -1 and parent_pos_diff[1] == -1:
+                        if pos_diff[0] == -1 and pos_diff[1] == 0:
+                            action = 'R'
+                        elif pos_diff[0] == 0 and pos_diff[1] == -1:
+                            action = 'L'
+                    if parent_pos_diff[0] == -1 and parent_pos_diff[1] == 1:
+                        if pos_diff[0] == 0 and pos_diff[1] == 1:
+                            action = 'R'
+                        elif pos_diff[0] == -1 and pos_diff[1] == 0:
+                            action = 'L'
+                    if parent_pos_diff[0] == 1 and parent_pos_diff[1] == -1:
+                        if pos_diff[0] == 0 and pos_diff[1] == -1:
+                            action = 'R'
+                        elif pos_diff[0] == 1 and pos_diff[1] == 0:
+                            action = 'L'
+
+                new_node = Node(new_pos[action_index],node.row_num,node.pos,action,node.level+1,1,tmp_rewards[action_index],tmp_pure_rewards[action_index],self.chain[node.level+1])
                 node.add_child(new_node)
                 self.tree.append(new_node)
                 self.all_pos.append(new_pos[action_index])
                 new_nodes.append(new_node)
             else:
-                print("node in path: ", new_pos[action_index], node.action)
+                pass
+                # print("node in path: ", new_pos[action_index], node.action)
         if len(new_nodes) == 0:
             node.reward = 0
             node.pure_reward = 0
             self.update_penalty()
             raise RuntimeError("Trapped.")
-            # elif new_pos[action_index] not in [node_i.pos for node_i in self.path]:
-            #     new_node = self.tree[self.all_pos.index(new_pos[action_index])]
-            #     new_node.level = node.level+1
-            #     node.add_child(new_node)
-            #     new_nodes.append(new_node)
         # print(f"new_node_len: {node.pos, len(new_nodes), [node_i.pos for node_i in new_nodes]}")
         return new_nodes
-            # else:
-            #     raise RuntimeError("Invalid move.")
+
 
     def reward(self, pos, node, added_reward=True):
         tmp_all_pos = np.array([tmp_node.pos for tmp_node in self.path[:-1]])
@@ -114,7 +122,6 @@ class MCTS:
 
 
     def simulate(self, new_node):
-        # print("new_node: ",new_node)
         if new_node == 0:
             random_node = self.tree[-1]
         else:
@@ -124,10 +131,6 @@ class MCTS:
         while random_node.level < len(self.chain)-1:
             # print("add_new_random: ", random_node.level, random_node.pos)
             new_nodes = self.expand(random_node)
-            # print("simulate new_nodes: ", new_nodes, len(new_nodes))
-            # if len(new_nodes) == 0:
-            #     raise RuntimeError("Trapped.")
-            # else:
             random_node = random.choice(new_nodes)
             self.path.append(random_node)
 
@@ -140,7 +143,7 @@ class MCTS:
             node_i.passby += 1
         
     def update_penalty(self):
-        for node_i in reversed(self.path[:-1]):
+        for node_i in reversed(self.path):
             node_i.reward -= 1
 
     def _uct_select(self, node):
@@ -152,6 +155,14 @@ class MCTS:
             return node.reward / node.passby + self.exploration_weight * np.sqrt(
                 log_N_parent / node.passby
             )
+        def uct_bk(node):
+            reward_w = [node.reward / node.passby + i * np.sqrt(log_N_parent / node.passby) for i in np.arange(1,20,0.1)]
+            return reward_w
+        
         # print("rewards: ",[uct(node_i) for node_i in node.children], [node_i.passby for node_i in node.children], "max: ", max(node.children, key=uct).pos, max(node.children, key=uct).passby, node.reward)
         random.shuffle(node.children)
+        # reward_ws = np.argmax(np.array([uct(node_i) for node_i in node.children]),axis=0)
+        # reward_ws_counter = np.argmax([(reward_ws == i).sum() for i in range(len(node.children))])
+        # print("reward_ws_counter: ",reward_ws_counter)
         return max(node.children, key=uct)
+        # return node.children[int(reward_ws_counter)]

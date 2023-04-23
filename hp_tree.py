@@ -4,10 +4,11 @@ actions = ['L','F','R']
 
 class Node:
 
-    def __init__(self, pos, parent_num, action, level, passby, reward, pure_reward, aa_type):
+    def __init__(self, pos, parent_num, parent_pos, action, level, passby, reward, pure_reward, aa_type):
         self.pos = pos
         self.action = action
         self.parent_num = parent_num
+        self.parent_pos = parent_pos
         self.level = level
         self.reward = reward
         self.pure_reward = pure_reward
@@ -38,8 +39,8 @@ class Node:
 
 def init_tree(chain):
     tree = []
-    tree.append(Node([0,0], 0, 'F', 0, 1, 0, 0, chain[0]))
-    tree.append(Node([0,1], 0, 'F', 1, 1, 0, 0, chain[1]))
+    tree.append(Node([0,0], 0, [0,0], 'F', 0, 1, 0, 0, chain[0]))
+    tree.append(Node([0,1], 0, [0,0], 'F', 1, 1, 0, 0, chain[1]))
     tree[0].add_child(tree[1])
     return tree
     
