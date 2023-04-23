@@ -1,6 +1,6 @@
 import unittest
 import sys
-sys.path.append('/orange/alberto.perezant/liweichang/dev/tmp_test/mcts_hplattice/mcts/')
+#sys.path.append('../')
 from run import run
 
 class TestInput(unittest.TestCase):
