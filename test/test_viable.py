@@ -1,7 +1,8 @@
 import unittest
 import sys
-#sys.path.append('../')
+sys.path.append('../')
 from run import run
+
 
 class TestInput(unittest.TestCase):
   def test_chain(self):
